@@ -1,0 +1,34 @@
+networks:
+  wcr7_bridge:
+    external: true
+
+services:
+  netbox:
+#    image: &NetboxImage netboxcommunity/netbox:${VERSION-latest-ldap}
+    hostname: netbox
+#    ports:
+#      - 8001:8080
+#    build:
+#      context: .
+#      dockerfile: Dockerfile-Plugins
+#    image: netbox:latest-plugins
+    networks:
+    - default
+    - wcr7_bridge
+    restart: always
+
+  netbox-worker:
+#    image: netbox:latest-plugins
+    restart: always
+  
+  netbox-housekeeping:
+    restart: always
+  
+  postgres:
+    restart: always
+  
+  redis:
+    restart: always
+  
+  redis-cache:
+    restart: always
