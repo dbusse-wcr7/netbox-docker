@@ -6,8 +6,8 @@ services:
   netbox:
 #    image: &NetboxImage netboxcommunity/netbox:${VERSION-latest-ldap}
     hostname: netbox
-#    ports:
-#      - 8001:8080
+    ports:
+      - 8001:8080
 #    build:
 #      context: .
 #      dockerfile: Dockerfile-Plugins
