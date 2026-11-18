@@ -39,9 +39,8 @@ SKIP_GIT    If defined, git is not invoked and \${NETBOX_PATH} will not be alter
 
 TAG         The version part of the image tag.
             ${_GREEN}Default:${_CLEAR}
-              When <branch>=master:  latest
-              When <branch>=develop: snapshot
-              Else:                  same as <branch>
+              When <branch>=main: snapshot
+              Else:               same as <branch>
 
 IMAGE_NAMES The names used for the image including the registry
             Used for tagging the image.
@@ -61,9 +60,9 @@ DOCKERFILE  The name of Dockerfile to use.
             ${_GREEN}Default:${_CLEAR} Dockerfile
 
 DOCKER_FROM The base image to use.
-            ${_GREEN}Default:${_CLEAR} 'ubuntu:24.04'
+            ${_GREEN}Default:${_CLEAR} 'ubuntu:26.04'
 
-BUILDX_PLATFORMS
+BUILDX_PLATFORM
             Specifies the platform(s) to build the image for.
             ${_CYAN}Example:${_CLEAR} 'linux/amd64,linux/arm64'
             ${_GREEN}Default:${_CLEAR} 'linux/amd64'
@@ -104,24 +103,21 @@ GH_ACTION   If defined, special 'echo' statements are enabled that set the
             ${_GREEN}Default:${_CLEAR} undefined
 
 CHECK_ONLY  Only checks if the build is needed and sets the GH Action output.
+            ${_GREEN}Default:${_CLEAR} undefined
 
 ${_BOLD}Examples:${_CLEAR}
 
-${0} master
-            This will fetch the latest 'master' branch, build a Docker Image and tag it
-            'netboxcommunity/netbox:latest'.
-
-${0} develop
-            This will fetch the latest 'develop' branch, build a Docker Image and tag it
+${0} main
+            This will fetch the latest 'main' branch, build a Docker Image and tag it
             'netboxcommunity/netbox:snapshot'.
 
-${0} v2.6.6
-            This will fetch the 'v2.6.6' tag, build a Docker Image and tag it
-            'netboxcommunity/netbox:v2.6.6' and 'netboxcommunity/netbox:v2.6'.
+${0} v4.2.0
+            This will fetch the 'v4.2.0' tag, build a Docker Image and tag it
+            'netboxcommunity/netbox:v4.2.0' and 'netboxcommunity/netbox:v4.2'.
 
-${0} develop-2.7
-            This will fetch the 'develop-2.7' branch, build a Docker Image and tag it
-            'netboxcommunity/netbox:develop-2.7'.
+${0} feature
+            This will fetch the 'feature' branch, build a Docker Image and tag it
+            'netboxcommunity/netbox:feature'.
 
 SRC_ORG=cimnine ${0} feature-x
             This will fetch the 'feature-x' branch from https://github.com/cimnine/netbox.git,
@@ -221,13 +217,13 @@ fi
 # Determining the value for DOCKER_FROM
 ###
 if [ -z "$DOCKER_FROM" ]; then
-  DOCKER_FROM="docker.io/ubuntu:24.04"
+  DOCKER_FROM="docker.io/ubuntu:26.04"
 fi
 
 ###
 # Variables for labelling the docker image
 ###
-BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M+00:00')"
+BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')"
 
 if [ -d ".git" ] && [ -z "${SKIP_GIT}" ]; then
   GIT_REF="$(git rev-parse HEAD)"
@@ -259,10 +255,7 @@ DOCKER_REGISTRY="${DOCKER_REGISTRY-docker.io}"
 DOCKER_ORG="${DOCKER_ORG-netboxcommunity}"
 DOCKER_REPO="${DOCKER_REPO-netbox}"
 case "${NETBOX_BRANCH}" in
-master)
-  TAG="${TAG-latest}"
-  ;;
-develop)
+main)
   TAG="${TAG-snapshot}"
   ;;
 *)
@@ -278,7 +271,7 @@ TARGET_DOCKER_TAG_PROJECT="${TARGET_DOCKER_TAG}-${PROJECT_VERSION}"
 
 ###
 # composing the additional DOCKER_SHORT_TAG,
-# i.e. "v2.6.1" becomes "v2.6",
+# i.e. "v4.2.0" becomes "v4.2",
 # which is only relevant for version tags
 # Also let "latest" follow the highest version
 ###
@@ -312,7 +305,7 @@ gh_env "FINAL_DOCKER_TAG=${IMAGE_NAME_TAGS[0]}"
 ###
 # Checking if the build is necessary,
 # meaning build only if one of those values changed:
-# - a new tag is beeing created
+# - a new tag is being created
 # - base image digest
 # - netbox git ref (Label: netbox.git-ref)
 # - netbox-docker git ref (Label: org.opencontainers.image.revision)
@@ -321,7 +314,7 @@ gh_env "FINAL_DOCKER_TAG=${IMAGE_NAME_TAGS[0]}"
 SHOULD_BUILD="false"
 BUILD_REASON=""
 if [ -z "${GH_ACTION}" ]; then
-  # Asuming non Github builds should always proceed
+  # Assuming non Github builds should always proceed
   SHOULD_BUILD="true"
   BUILD_REASON="${BUILD_REASON} interactive"
 elif [ "false" == "$(check_if_tags_exists "${IMAGE_NAMES[0]}" "$TARGET_DOCKER_TAG")" ]; then
@@ -411,6 +404,8 @@ fi
 # shellcheck disable=SC2031
 if [ -n "${HTTP_PROXY}" ]; then
   DOCKER_BUILD_ARGS+=(--build-arg "http_proxy=${HTTP_PROXY}")
+fi
+if [ -n "${HTTPS_PROXY}" ]; then
   DOCKER_BUILD_ARGS+=(--build-arg "https_proxy=${HTTPS_PROXY}")
 fi
 if [ -n "${NO_PROXY}" ]; then
